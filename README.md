@@ -22,6 +22,6 @@ will be printed like this:
 |0 |2 |1 |= |1
 |-1 |-6 |0  | |3
 
-###RUN
+### RUN
 
 <img src="Run.png" width="1000">
