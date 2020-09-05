@@ -1,0 +1,169 @@
+import java.io.*;
+import java.util.*;
+// 1111111111111111111111111111111111111111111111111111111111111111111111111111111
+enum TokenType{IDE,EQUAL,ADD,SUB,MULT,DIV,NUM,POW}
+class Token
+{   
+    String text;
+    TokenType type;
+    int line;
+    public Token(TokenType type,String text,int line)
+    {
+        this.text=text;
+        this.type=type;
+        this.line=line;
+    }
+    public String toString()
+    {
+        return String.format("%s\t|\t%s\t%s\n-----------------------------------",type,text,line);
+    }
+}
+//2222222222222222222222222222222222222222222222222222222222222222222222222222222222
+class Identifier
+{
+    String number,ide,given_token;
+    int line,column;
+    public Identifier(String given_token,int line)
+    {
+        this.given_token=given_token;
+        this.line=line;
+        String temp="";
+        for(int j=0;j<given_token.length();j++)
+        {   
+            if(given_token.charAt(j)=='-')
+            {
+                temp+='-';
+                given_token=given_token.substring(1);
+                j--;
+                continue;
+            }
+            else if(given_token.charAt(j)=='+')
+            {
+                given_token=given_token.substring(1);
+                j--;
+                continue;
+            }
+            if(Character.isDigit(given_token.charAt(j)))
+            temp+=given_token.charAt(j);
+            else
+            {
+                if(j==0)
+                temp+='1';
+                this.number=temp;
+                this.ide=given_token.substring(j);
+                Lexer.ident.add(this.ide);
+                break;
+            } 
+        }
+     
+    }
+    @Override
+     public String toString()
+        {
+        return String.format("number : %s\n ide : %s\n line : %d\n",number,ide,line);
+        }
+}
+%%
+%class Lexer
+%public
+%function getNextToken
+%type Token
+%{
+ArrayList<Identifier>tokens=new ArrayList();
+ArrayList<String>equals=new ArrayList();
+static SortedSet<String>ident=new TreeSet<>();
+%}
+%eof{
+
+    HashMap<String,Integer> hm=new HashMap<String,Integer>();
+    Iterator<String> it =ident.iterator();
+    int index=0;
+    while(it.hasNext())
+    {
+        String temp=it.next();
+        System.out.format("%5s",temp);
+        hm.put(temp,index);
+        index++;
+    }   
+    System.out.println("\n");
+    int final_size=ident.size();
+    for(int i=0;i<tokens.size();i++)
+    {
+        Identifier temp =tokens.get(i);
+        temp.column=hm.get(temp.ide);
+        tokens.set(i,temp);
+    }
+    String[][]matrix=new String[yyline][final_size];
+    for(String[] row:matrix)
+    {
+        Arrays.fill(row,"0");
+    }
+    for(int i=0;i<tokens.size();i++)
+    {
+        int r,c;
+        r=tokens.get(i).line;
+        c=tokens.get(i).column;
+        matrix[r][c]=tokens.get(i).number;
+    }
+    
+    for(int i=0;i<yyline;i++)
+    {   
+        for(int j=0;j<final_size;j++)
+        {
+            System.out.format("%5s",matrix[i][j]);
+        }
+        try{
+          if(i==yyline/2)
+        {
+            System.out.format("%5c%5s\n\n",'=',equals.get(i));
+        }
+        else
+        System.out.format("%10s\n\n",equals.get(i));
+       }catch(Exception x)
+       {
+       System.out.println("\nplease don't leave a blank new line!");
+       }
+    }
+    
+    
+%eof}
+%{
+    public static void main(String[] args)throws IOException 
+    {
+     System.out.println("\n\n\tGenerated Matrix\n");
+      FileReader r =new FileReader("in.txt");
+        FileWriter fr = new FileWriter("format.in");
+        int character;
+        while((character=r.read())!=-1)
+        {
+           if(character==' ')
+           continue;
+           fr.write(character);
+        }
+        fr.close();
+        r.close();
+        r = new FileReader("format.in");
+     Lexer l =new Lexer(r);
+     // 1111111111111111111111111111111111111111111111111111111111111111111111111111111
+     Token tok;
+     while ((tok=l.getNextToken()) != null )
+      {
+         System.out.println(tok);  
+      }   
+      // 222222222222222222222222222222222222222222222222222222222222222222222222222222
+       r.close();  
+    }
+    
+%}
+%line
+ALPHA=[a-zA-Z]
+DIGIT=[0-9]
+NON_ZERO_DIGIT=[1-9]
+WS=[\r\t\n\f\ ]
+%%
+<YYINITIAL> "-"{NON_ZERO_DIGIT}{DIGIT}*{ALPHA}{ALPHA}*{DIGIT}*|"-"{ALPHA}{ALPHA}*{DIGIT}* {tokens.add(new Identifier(yytext(),yyline));}
+<YYINITIAL> "+"{NON_ZERO_DIGIT}{DIGIT}*{ALPHA}{ALPHA}*{DIGIT}*|"+"{ALPHA}{ALPHA}*{DIGIT}* {tokens.add(new Identifier(yytext(),yyline));}
+<YYINITIAL> {NON_ZERO_DIGIT}{DIGIT}*{ALPHA}{ALPHA}*{DIGIT}*|{ALPHA}{ALPHA}*{DIGIT}* {tokens.add(new Identifier(yytext(),yyline));}
+<YYINITIAL> "="{DIGIT}*|"=""-"{DIGIT}* {equals.add(yytext().substring(1));}
+<YYINITIAL> {WS}* {}
+<YYINITIAL> . {System.out.println("error");}
